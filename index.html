@@ -34,7 +34,13 @@
 <label>اختر اليوم:</label>
 <input type="date" id="datePicker">
 
-<input id="shop" placeholder="اسم المحل">
+<select id="shop">
+  <option value="">اختر المحل</option>
+  <option>محل أحمد</option>
+  <option>محل يوسف</option>
+  <option>محل سعيد</option>
+  <option>محل حسن</option>
+</select>
 <input id="qty" placeholder="الكمية">
 <input id="pricePerKg" placeholder="ثمن/كيلو">
 <input id="totalPrice" placeholder="الثمن الواجب أداؤه" readonly>
@@ -232,5 +238,6 @@ document.getElementById("restoreBtn").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
