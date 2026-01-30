@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>جدول المحلات اليومي</title>
+<style>
+body { font-family: Arial; direction: rtl; text-align: center; padding: 10px; }
+input, button { width: 100%; padding: 10px; margin: 5px 0; font-size: 16px; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+th, td { border: 1px solid #333; padding: 6px; }
+.paid { background-color: #c8f7c5; }
+.unpaid { background-color: #f7c5c5; }
+.action-btn { width: auto; padding: 5px 8px; margin: 2px; font-size: 13px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h3>جدول المحلات اليومي</h3>
+
+<label>اختر اليوم:</label>
+<input type="date" id="datePicker">
+
+<input id="shop" placeholder="اسم المحل">
+<input id="qty" placeholder="الكمية">
+<input id="pricePerKg" placeholder="ثمن/كيلو">
+<input id="totalPrice" placeholder="الثمن الواجب أداؤه" readonly>
+<input id="paid" placeholder="المبلغ المدفوع">
+<input id="remaining" placeholder="الباقي" readonly>
+<input id="status" placeholder="خ / م">
+
+<button id="addBtn">إضافة</button>
+<button onclick="clearData()">مسح اليوم</button>
+
+<table>
+<thead>
+<tr>
+<th>المحل</th>
+<th>الكمية</th>
+<th>ثمن/كيلو</th>
+<th>الثمن الواجب</th>
+<th>المدفوع</th>
+<th>الباقي</th>
+<th>الحالة</th>
+<th>إجراءات</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<script>
+let editIndex = null;
+let currentDate = getToday();
+
+// عند فتح الصفحة
+document.getElementById("datePicker").value = currentDate;
+
+// تحميل جدول اليوم عند تغيير التاريخ
+document.getElementById("datePicker").addEventListener("change", () => {
+    currentDate = document.getElementById("datePicker").value;
+    editIndex = null;
+    document.getElementById("addBtn").innerText = "إضافة";
+    renderTable();
+});
+
+// الحصول على جدول اليوم من التخزين
+function getData() {
+    const raw = localStorage.getItem("table_" + currentDate);
+    return raw ? JSON.parse(raw) : [];
+}
+
+// حفظ جدول اليوم في التخزين
+function saveData(data) {
+    localStorage.setItem("table_" + currentDate, JSON.stringify(data));
+}
+
+// تنسيق التاريخ اليوم تلقائيًا
+function getToday() {
+    const d = new Date();
+    return d.toISOString().split('T')[0]; // صيغة: YYYY-MM-DD
+}
+
+// تحديث الثمن الواجب أداؤه
+function updateTotal() {
+    const qty = parseFloat(document.getElementById("qty").value) || 0;
+    const pricePerKg = parseFloat(document.getElementById("pricePerKg").value) || 0;
+    const totalPrice = qty * pricePerKg;
+    document.getElementById("totalPrice").value = totalPrice.toFixed(2);
+    updateRemaining();
+}
+
+// تحديث الباقي تلقائيًا
+function updateRemaining() {
+    const totalPrice = parseFloat(document.getElementById("totalPrice").value) || 0;
+    const paid = parseFloat(document.getElementById("paid").value) || 0;
+    const remaining = totalPrice - paid;
+    document.getElementById("remaining").value = remaining.toFixed(2);
+
+    // تحديث الحالة تلقائيًا
+    if (remaining <= 0) {
+        document.getElementById("status").value = "خ";
+    } else {
+        document.getElementById("status").value = "م";
+    }
+}
+
+// ربط الحساب التلقائي عند إدخال البيانات
+document.getElementById("qty").addEventListener("input", updateTotal);
+document.getElementById("pricePerKg").addEventListener("input", updateTotal);
+document.getElementById("paid").addEventListener("input", updateRemaining);
+
+function getStatus(input) {
+    if (input === "خ") return { text: "خالص", className: "paid" };
+    if (input === "م") return { text: "مخلصش", className: "unpaid" };
+    return { text: input, className: "" };
+}
+
+function renderTable() {
+    const table = document.getElementById("tableBody");
+    table.innerHTML = "";
+    const data = getData();
+
+    data.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.className = row.className;
+        tr.innerHTML = `
+            <td>${row.shop}</td>
+            <td>${row.qty}</td>
+            <td>${row.pricePerKg}</td>
+            <td>${row.totalPrice}</td>
+            <td>${row.paid}</td>
+            <td>${row.remaining}</td>
+            <td>${row.status}</td>
+            <td>
+                <button class="action-btn" onclick="editRow(${index})">تعديل</button>
+                <button class="action-btn" onclick="deleteRow(${index})">حذف</button>
+            </td>
+        `;
+        table.appendChild(tr);
+    });
+}
+
+function addOrUpdate() {
+    const shop = document.getElementById("shop").value.trim();
+    const qty = parseFloat(document.getElementById("qty").value) || 0;
+    const pricePerKg = parseFloat(document.getElementById("pricePerKg").value) || 0;
+    const totalPrice = parseFloat(document.getElementById("totalPrice").value) || 0;
+    const paid = parseFloat(document.getElementById("paid").value) || 0;
+    const remaining = parseFloat(document.getElementById("remaining").value) || 0;
+    const statusInput = document.getElementById("status").value.trim();
+
+    if (!shop) { alert("رجاءً أدخل اسم المحل"); return; }
+
+    const statusData = getStatus(statusInput);
+    const rowData = { shop, qty, pricePerKg, totalPrice, paid, remaining, status: statusData.text, className: statusData.className };
+
+    const data = getData();
+
+    if (editIndex === null) {
+        data.push(rowData);
+    } else {
+        data[editIndex] = rowData;
+        editIndex = null;
+        document.getElementById("addBtn").innerText = "إضافة";
+    }
+
+    saveData(data);
+    renderTable();
+    document.querySelectorAll("input").forEach(i => i.value = "");
+}
+
+function editRow(index) {
+    const data = getData();
+    const row = data[index];
+
+    document.getElementById("shop").value = row.shop;
+    document.getElementById("qty").value = row.qty;
+    document.getElementById("pricePerKg").value = row.pricePerKg;
+    document.getElementById("totalPrice").value = row.totalPrice;
+    document.getElementById("paid").value = row.paid;
+    document.getElementById("remaining").value = row.remaining;
+    document.getElementById("status").value = row.status;
+
+    editIndex = index;
+    document.getElementById("addBtn").innerText = "حفظ التعديل";
+}
+
+function deleteRow(index) {
+    if (confirm("هل أنت متأكد من حذف هذا الصف؟")) {
+        const data = getData();
+        data.splice(index, 1);
+        saveData(data);
+        renderTable();
+    }
+}
+
+function clearData() {
+    if (confirm("هل أنت متأكد من مسح جدول هذا اليوم؟")) {
+        saveData([]);
+        renderTable();
+    }
+}
+
+document.getElementById("addBtn").addEventListener("click", addOrUpdate);
+
+// تحميل جدول اليوم عند فتح الصفحة
+renderTable();
+</script>
+
+</body>
+</html>
+
