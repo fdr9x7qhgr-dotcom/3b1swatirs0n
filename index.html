@@ -1,28 +1,35 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-<meta charset="UTF-8">
-
-<link rel="apple-touch-icon" sizes="180x180" href="icon.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
-
-...
-</head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>𝐍𝐁 𝐂𝐀𝐑𝐓𝐎𝐅𝐄𝐋 𝐅𝐑𝐈𝐓𝐄</title>
-<style>
-body { font-family: Arial; direction: rtl; text-align: center; padding: 10px; }
-input, button { width: 100%; padding: 10px; margin: 5px 0; font-size: 16px; }
-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-th, td { border: 1px solid #333; padding: 6px; }
-.paid { background-color: #c8f7c5; }
-.unpaid { background-color: #f7c5c5; }
-.action-btn { width: auto; padding: 5px 8px; margin: 2px; font-size: 13px; cursor: pointer; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جدول المحلات اليومي</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="E35874EE-0FD8-4871-BFBA-B35ED03A05B6.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="E35874EE-0FD8-4871-BFBA-B35ED03A05B6.png">
+    <style>
+        body { font-family: Arial; direction: rtl; text-align: center; padding: 10px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { border: 1px solid #333; padding: 6px; }
+        .paid { background-color: #c8f7c5; }
+        .unpaid { background-color: #f7c5c5; }
+        .action-btn { width: auto; padding: 5px 8px; margin: 2px; font-size: 13px; cursor: pointer; }
+        /* قائمة ثلاث نقاط */
+        #menuDropdown button { width: 100%; margin: 3px 0; }
+    </style>
 </head>
 <body>
 
 <h3>جدول المحلات اليومي</h3>
+
+<!-- قائمة ثلاث نقاط -->
+<div style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
+  <button id="menuBtn" style="font-size: 20px; padding: 5px 10px; cursor: pointer;">⋮</button>
+  <div id="menuDropdown" style="display: none; position: absolute; right: 0; background: #fff; border: 1px solid #333; padding: 5px; text-align: right;">
+    <button id="backupBtn" class="action-btn">Backup</button><br>
+    <button id="restoreBtn" class="action-btn">Restore</button>
+  </div>
+</div>
 
 <label>اختر اليوم:</label>
 <input type="date" id="datePicker">
@@ -57,8 +64,6 @@ th, td { border: 1px solid #333; padding: 6px; }
 <script>
 let editIndex = null;
 let currentDate = getToday();
-
-// عند فتح الصفحة
 document.getElementById("datePicker").value = currentDate;
 
 // تحميل جدول اليوم عند تغيير التاريخ
@@ -69,24 +74,22 @@ document.getElementById("datePicker").addEventListener("change", () => {
     renderTable();
 });
 
-// الحصول على جدول اليوم من التخزين
+// LocalStorage
 function getData() {
     const raw = localStorage.getItem("table_" + currentDate);
     return raw ? JSON.parse(raw) : [];
 }
-
-// حفظ جدول اليوم في التخزين
 function saveData(data) {
     localStorage.setItem("table_" + currentDate, JSON.stringify(data));
 }
 
-// تنسيق التاريخ اليوم تلقائيًا
+// التاريخ
 function getToday() {
     const d = new Date();
-    return d.toISOString().split('T')[0]; // صيغة: YYYY-MM-DD
+    return d.toISOString().split('T')[0];
 }
 
-// تحديث الثمن الواجب أداؤه
+// تحديث الحسابات
 function updateTotal() {
     const qty = parseFloat(document.getElementById("qty").value) || 0;
     const pricePerKg = parseFloat(document.getElementById("pricePerKg").value) || 0;
@@ -94,23 +97,13 @@ function updateTotal() {
     document.getElementById("totalPrice").value = totalPrice.toFixed(2);
     updateRemaining();
 }
-
-// تحديث الباقي تلقائيًا
 function updateRemaining() {
     const totalPrice = parseFloat(document.getElementById("totalPrice").value) || 0;
     const paid = parseFloat(document.getElementById("paid").value) || 0;
     const remaining = totalPrice - paid;
     document.getElementById("remaining").value = remaining.toFixed(2);
-
-    // تحديث الحالة تلقائيًا
-    if (remaining <= 0) {
-        document.getElementById("status").value = "خ";
-    } else {
-        document.getElementById("status").value = "م";
-    }
+    document.getElementById("status").value = remaining <= 0 ? "خ" : "م";
 }
-
-// ربط الحساب التلقائي عند إدخال البيانات
 document.getElementById("qty").addEventListener("input", updateTotal);
 document.getElementById("pricePerKg").addEventListener("input", updateTotal);
 document.getElementById("paid").addEventListener("input", updateRemaining);
@@ -125,7 +118,6 @@ function renderTable() {
     const table = document.getElementById("tableBody");
     table.innerHTML = "";
     const data = getData();
-
     data.forEach((row, index) => {
         const tr = document.createElement("tr");
         tr.className = row.className;
@@ -154,31 +146,19 @@ function addOrUpdate() {
     const paid = parseFloat(document.getElementById("paid").value) || 0;
     const remaining = parseFloat(document.getElementById("remaining").value) || 0;
     const statusInput = document.getElementById("status").value.trim();
-
     if (!shop) { alert("رجاءً أدخل اسم المحل"); return; }
-
     const statusData = getStatus(statusInput);
     const rowData = { shop, qty, pricePerKg, totalPrice, paid, remaining, status: statusData.text, className: statusData.className };
-
     const data = getData();
-
-    if (editIndex === null) {
-        data.push(rowData);
-    } else {
-        data[editIndex] = rowData;
-        editIndex = null;
-        document.getElementById("addBtn").innerText = "إضافة";
-    }
-
+    if (editIndex === null) { data.push(rowData); }
+    else { data[editIndex] = rowData; editIndex = null; document.getElementById("addBtn").innerText = "إضافة"; }
     saveData(data);
     renderTable();
     document.querySelectorAll("input").forEach(i => i.value = "");
 }
-
 function editRow(index) {
     const data = getData();
     const row = data[index];
-
     document.getElementById("shop").value = row.shop;
     document.getElementById("qty").value = row.qty;
     document.getElementById("pricePerKg").value = row.pricePerKg;
@@ -186,11 +166,9 @@ function editRow(index) {
     document.getElementById("paid").value = row.paid;
     document.getElementById("remaining").value = row.remaining;
     document.getElementById("status").value = row.status;
-
     editIndex = index;
     document.getElementById("addBtn").innerText = "حفظ التعديل";
 }
-
 function deleteRow(index) {
     if (confirm("هل أنت متأكد من حذف هذا الصف؟")) {
         const data = getData();
@@ -199,7 +177,6 @@ function deleteRow(index) {
         renderTable();
     }
 }
-
 function clearData() {
     if (confirm("هل أنت متأكد من مسح جدول هذا اليوم؟")) {
         saveData([]);
@@ -208,14 +185,50 @@ function clearData() {
 }
 
 document.getElementById("addBtn").addEventListener("click", addOrUpdate);
-
-// تحميل جدول اليوم عند فتح الصفحة
 renderTable();
+
+// القائمة ثلاث نقاط
+document.getElementById("menuBtn").addEventListener("click", () => {
+    const menu = document.getElementById("menuDropdown");
+    menu.style.display = menu.style.display === "none" ? "block" : "none";
+});
+
+// Backup
+document.getElementById("backupBtn").addEventListener("click", () => {
+    const data = getData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `backup_${currentDate}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    alert("تم تصدير البيانات بنجاح!");
+});
+
+// Restore
+document.getElementById("restoreBtn").addEventListener("click", () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = event => {
+            try {
+                const restoredData = JSON.parse(event.target.result);
+                saveData(restoredData);
+                renderTable();
+                alert("تم استرجاع البيانات بنجاح!");
+            } catch {
+                alert("الملف غير صالح");
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+});
 </script>
 
 </body>
 </html>
-
-
-
-
