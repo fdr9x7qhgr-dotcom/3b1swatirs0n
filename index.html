@@ -3,34 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>جدول المحلات</title>
-
+<title>جدول المحلات اليومي Pro</title>
 <style>
 body { font-family: Arial; direction: rtl; text-align: center; padding: 10px; }
 input, select, button { width: 100%; padding: 8px; margin: 4px 0; }
-table { width:100%; border-collapse: collapse; margin-top:10px; }
-th, td { border:1px solid #333; padding:5px; }
+table { width:100%; border-collapse: collapse; margin-top:10px; font-size:14px; }
+th, td { border:1px solid #333; padding:5px; text-align:center; }
 .paid { background:#c8f7c5; }
 .unpaid { background:#f7c5c5; }
+.action-btn { padding:4px 8px; margin:2px; cursor:pointer; font-size:12px; }
+#menuDropdown button { width: 100%; margin:3px 0; }
 </style>
 </head>
-
 <body>
 
-<h3>نظام حساب المحلات</h3>
+<h3>جدول المحلات اليومي Pro</h3>
 
-<!-- إدارة المحلات -->
+<!-- القائمة ثلاث نقاط -->
+<div style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
+  <button id="menuBtn" style="font-size: 20px; padding: 5px 10px; cursor: pointer;">⋮</button>
+  <div id="menuDropdown" style="display: none; position: absolute; right: 0; background: #fff; border: 1px solid #333; padding: 5px; text-align: right;">
+    <button id="backupBtn" class="action-btn">Backup</button><br>
+    <button id="restoreBtn" class="action-btn">Restore</button>
+  </div>
+</div>
+
+<label>اختر اليوم:</label>
+<input type="date" id="datePicker">
+
 <h4>إدارة المحلات</h4>
-
 <input id="newShopName" placeholder="اسم المحل الجديد">
 <input id="newShopDebt" placeholder="الباقي الأولي">
-
 <button onclick="addShop()">➕ إضافة محل</button>
-<button onclick="deleteShop()">❌ مسح المحل</button>
+<button onclick="deleteShop()">❌ مسح محل</button>
 
 <hr>
 
-<!-- اختيار المحل -->
 <select id="shopSelect" onchange="loadOldDebt()">
 <option value="">اختر المحل</option>
 </select>
@@ -38,46 +46,52 @@ th, td { border:1px solid #333; padding:5px; }
 <input id="oldDebt" placeholder="الباقي القديم" readonly>
 <input id="qty" placeholder="الكمية">
 <input id="price" placeholder="ثمن/كيلو">
-
 <input id="total" placeholder="الثمن الواجب" readonly>
 <input id="paid" placeholder="المدفوع">
-
 <input id="newDebt" placeholder="الباقي الجديد" readonly>
 <input id="sumDebt" placeholder="مجموع الباقي" readonly>
 
 <button onclick="addRecord()">إضافة للجدول</button>
+<button onclick="clearDay()">مسح اليوم</button>
 
-<!-- الجدول -->
 <table>
 <thead>
 <tr>
 <th>المحل</th>
-<th>الواجب</th>
+<th>الكمية</th>
+<th>ثمن/كيلو</th>
+<th>الثمن</th>
 <th>المدفوع</th>
 <th>الباقي الجديد</th>
 <th>مجموع الباقي</th>
+<th>الحالة</th>
+<th>إجراءات</th>
 </tr>
 </thead>
-
 <tbody id="table"></tbody>
 </table>
 
 <script>
+let editIndex = null;
+let currentDate = getToday();
+document.getElementById("datePicker").value = currentDate;
 
-// المحلات
 let shops = JSON.parse(localStorage.getItem("shops")||"{}");
-let records = JSON.parse(localStorage.getItem("records")||"[]");
+let records = JSON.parse(localStorage.getItem("records_"+currentDate)||"[]");
 
 function save(){
 localStorage.setItem("shops",JSON.stringify(shops));
-localStorage.setItem("records",JSON.stringify(records));
+localStorage.setItem("records_"+currentDate,JSON.stringify(records));
 }
 
-// تحميل اللائحة
+function getToday(){
+const d=new Date();
+return d.toISOString().split('T')[0];
+}
+
 function loadShops(){
 let s=document.getElementById("shopSelect");
 s.innerHTML='<option value="">اختر المحل</option>';
-
 for(let k in shops){
 let o=document.createElement("option");
 o.value=k;
@@ -87,81 +101,69 @@ s.appendChild(o);
 }
 loadShops();
 
-// إضافة محل
 function addShop(){
 let name=document.getElementById("newShopName").value.trim();
 let debt=parseFloat(document.getElementById("newShopDebt").value)||0;
-
 if(!name){alert("اكتب اسم المحل");return;}
-
 shops[name]=debt;
 save();
 loadShops();
-
 document.getElementById("newShopName").value="";
 document.getElementById("newShopDebt").value="";
 }
 
-// حذف محل
 function deleteShop(){
 let s=document.getElementById("shopSelect").value;
-
 if(!s){alert("اختر محل");return;}
-
 if(confirm("مسح المحل؟")){
 delete shops[s];
 save();
 loadShops();
+render();
 }
 }
 
-// تحميل الباقي القديم
 function loadOldDebt(){
 let s=document.getElementById("shopSelect").value;
 document.getElementById("oldDebt").value=shops[s]||0;
 calc();
 }
 
-// الحساب
-function calc(){
-let q=parseFloat(qty.value)||0;
-let p=parseFloat(price.value)||0;
-let pay=parseFloat(paid.value)||0;
-let old=parseFloat(oldDebt.value)||0;
-
-let total=q*p;
-let newD=total-pay;
-let sum=old+newD;
-
-totalInput.value=total.toFixed(2);
-newDebt.value=newD.toFixed(2);
-sumDebt.value=sum.toFixed(2);
-}
-
 let qty=document.getElementById("qty");
 let price=document.getElementById("price");
 let paid=document.getElementById("paid");
 let oldDebt=document.getElementById("oldDebt");
-
 let totalInput=document.getElementById("total");
 let newDebt=document.getElementById("newDebt");
 let sumDebt=document.getElementById("sumDebt");
 
 qty.oninput=price.oninput=paid.oninput=calc;
+function calc(){
+let q=parseFloat(qty.value)||0;
+let p=parseFloat(price.value)||0;
+let pay=parseFloat(paid.value)||0;
+let old=parseFloat(oldDebt.value)||0;
+let total=q*p;
+let newD=Math.max(0,total-pay);
+let extraPay=Math.max(0,pay-total);
+let sum=old-newD+total; // تعديل لاحقًا في الجمع
+sum=old + newD - extraPay; // الدفع يأخذ من القديم إذا زاد
+totalInput.value=total.toFixed(2);
+newDebt.value=newD.toFixed(2);
+sumDebt.value=sum.toFixed(2);
+}
 
-// إضافة للسجل
 function addRecord(){
-
 let shop=shopSelect.value;
 if(!shop){alert("اختر محل");return;}
-
 let total=+totalInput.value;
 let pay=+paid.value;
 let newD=+newDebt.value;
 let sum=+sumDebt.value;
+let status=sum<=0?"خالص":"مخلصش";
 
 records.push({
-shop,total,pay,newD,sum
+shop,qty:+qty.value,price:+price.value,total,pay,newD,sum,status
 });
 
 // تحديث دين المحل
@@ -170,34 +172,107 @@ shops[shop]=sum;
 save();
 render();
 loadOldDebt();
-
 qty.value=price.value=paid.value="";
 }
 
-// عرض الجدول
 function render(){
-
 let t=document.getElementById("table");
 t.innerHTML="";
-
-records.forEach(r=>{
-
+records.forEach((r,index)=>{
 let tr=document.createElement("tr");
+tr.className=r.status==="خالص"?"paid":"unpaid";
 tr.innerHTML=`
 <td>${r.shop}</td>
+<td>${r.qty}</td>
+<td>${r.price}</td>
 <td>${r.total}</td>
 <td>${r.pay}</td>
 <td>${r.newD}</td>
 <td>${r.sum}</td>
+<td>${r.status}</td>
+<td>
+<button class="action-btn" onclick="editRow(${index})">تعديل</button>
+<button class="action-btn" onclick="deleteRow(${index})">حذف</button>
+</td>
 `;
-
 t.appendChild(tr);
-
 });
 }
+
+function editRow(index){
+let r=records[index];
+document.getElementById("shopSelect").value=r.shop;
+loadOldDebt();
+qty.value=r.qty;
+price.value=r.price;
+totalInput.value=r.total;
+paid.value=r.pay;
+newDebt.value=r.newD;
+sumDebt.value=r.sum;
+editIndex=index;
+}
+
+function deleteRow(index){
+if(confirm("هل أنت متأكد من حذف هذا الصف؟")){
+records.splice(index,1);
+save();
+render();
+}
+}
+
+function clearDay(){
+if(confirm("هل أنت متأكد من مسح جدول هذا اليوم؟")){
+records=[];
+save();
+render();
+}
+}
+
+document.getElementById("addBtn")?.addEventListener("click",addRecord);
 render();
 
-</script>
+// القائمة ثلاث نقاط
+document.getElementById("menuBtn").addEventListener("click",()=>{
+const menu=document.getElementById("menuDropdown");
+menu.style.display=menu.style.display==="none"?"block":"none";
+});
 
+// Backup
+document.getElementById("backupBtn").addEventListener("click",()=>{
+const data=records;
+const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");
+a.href=url;
+a.download=`backup_${currentDate}.json`;
+a.click();
+URL.revokeObjectURL(url);
+alert("تم تصدير البيانات بنجاح!");
+});
+
+// Restore
+document.getElementById("restoreBtn").addEventListener("click",()=>{
+const input=document.createElement("input");
+input.type="file";
+input.accept=".json";
+input.onchange=e=>{
+const file=e.target.files[0];
+const reader=new FileReader();
+reader.onload=event=>{
+try{
+const restoredData=JSON.parse(event.target.result);
+records=restoredData;
+save();
+render();
+alert("تم استرجاع البيانات بنجاح!");
+}catch{
+alert("الملف غير صالح");
+}
+};
+reader.readAsText(file);
+};
+input.click();
+});
+</script>
 </body>
 </html>
