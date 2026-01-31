@@ -162,6 +162,15 @@ function calc(){
     totalInput.value=total.toFixed(2);
     newDebt.value=newD.toFixed(2);
     sumDebt.value=sum.toFixed(2);
+
+    // الحالة الذكية عند إدخال البيانات
+    if(newD === 0 && sum > 0){
+        sumDebt.style.background="#f7c5c5"; // أحمر
+    } else if(sum <= 0){
+        sumDebt.style.background="#c8f7c5"; // أخضر
+    } else {
+        sumDebt.style.background="";
+    }
 }
 
 // إضافة للسجل
@@ -173,7 +182,16 @@ function addRecord(){
     let pay=+paid.value;
     let newD=+newDebt.value;
     let sum=+sumDebt.value;
-    let status=sum<=0?"خالص":"مخلصش";
+
+    // الحالة الذكية
+    let status = "";
+    if(newD === 0 && sum > 0){
+        status = "مخلصش الباقي القديم";
+    } else if(sum <=0){
+        status = "خالص";
+    } else {
+        status = "مخلصش";
+    }
 
     records.push({
         shop,
@@ -202,7 +220,17 @@ function render(){
     t.innerHTML="";
     records.forEach((r,index)=>{
         let tr=document.createElement("tr");
-        tr.className=r.status==="خالص"?"paid":"unpaid";
+        // الحالة الذكية في الجدول
+        if(r.newD === 0 && r.sum > 0){
+            tr.className="unpaid";
+            r.status = "مخلصش الباقي القديم";
+        } else if(r.sum <=0){
+            tr.className="paid";
+            r.status = "خالص";
+        } else {
+            tr.className="unpaid";
+            r.status = "مخلصش";
+        }
         tr.innerHTML=`
             <td>${r.shop}</td>
             <td>${r.qty}</td>
