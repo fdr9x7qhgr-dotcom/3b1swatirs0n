@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>𝐍𝐁 𝐂𝐀𝐑𝐓𝐎𝐅𝐄𝐋 𝐅𝐑𝐈𝐓𝐄</title>
+<title>جدول المحلات اليومي Pro</title>
 <style>
 body { font-family: Arial; direction: rtl; text-align: center; padding: 10px; }
 input, select, button { width: 100%; padding: 8px; margin: 4px 0; }
@@ -17,7 +17,7 @@ th, td { border:1px solid #333; padding:5px; text-align:center; }
 </head>
 <body>
 
-<h3>𝐍𝐁 𝐂𝐀𝐑𝐓𝐎𝐅𝐄𝐋 𝐅𝐑𝐈𝐓𝐄</h3>
+<h3>جدول المحلات اليومي Pro</h3>
 
 <!-- القائمة ثلاث نقاط -->
 <div style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
@@ -162,15 +162,6 @@ function calc(){
     totalInput.value=total.toFixed(2);
     newDebt.value=newD.toFixed(2);
     sumDebt.value=sum.toFixed(2);
-
-    // الحالة الذكية عند إدخال البيانات
-    if(newD === 0 && sum > 0){
-        sumDebt.style.background="#f7c5c5"; // أحمر
-    } else if(sum <= 0){
-        sumDebt.style.background="#c8f7c5"; // أخضر
-    } else {
-        sumDebt.style.background="";
-    }
 }
 
 // إضافة للسجل
@@ -182,16 +173,7 @@ function addRecord(){
     let pay=+paid.value;
     let newD=+newDebt.value;
     let sum=+sumDebt.value;
-
-    // الحالة الذكية
-    let status = "";
-    if(newD === 0 && sum > 0){
-        status = "مخلصش الباقي القديم";
-    } else if(sum <=0){
-        status = "خالص";
-    } else {
-        status = "مخلصش";
-    }
+    let status=sum<=0?"خالص":"مخلصش";
 
     records.push({
         shop,
@@ -220,17 +202,7 @@ function render(){
     t.innerHTML="";
     records.forEach((r,index)=>{
         let tr=document.createElement("tr");
-        // الحالة الذكية في الجدول
-        if(r.newD === 0 && r.sum > 0){
-            tr.className="unpaid";
-            r.status = "مخلصش الباقي القديم";
-        } else if(r.sum <=0){
-            tr.className="paid";
-            r.status = "خالص";
-        } else {
-            tr.className="unpaid";
-            r.status = "مخلصش";
-        }
+        tr.className=r.status==="خالص"?"paid":"unpaid";
         tr.innerHTML=`
             <td>${r.shop}</td>
             <td>${r.qty}</td>
